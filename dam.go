@@ -125,6 +125,29 @@ func (d *Dam) LoadOrStore(key Marshallable, fetch FetchFunc) (interface{}, error
 	return v, err
 }
 
+// Range ranges over existing entries in a Dam. Range does not
+// represent snapshot of Dam. Range returns if f returns false.
+func (d *Dam) Range(f func(value interface{}) bool) {
+	var keys []string
+	d.mutex.RLock()
+	for k, _ := range d.storage {
+		keys = append(keys, k)
+	}
+	d.mutex.RUnlock()
+
+	for _, k := range keys {
+		d.mutex.RLock()
+		value, ok := d.storage[k]
+		d.mutex.RUnlock()
+		if !ok {
+			continue
+		}
+		if !f(value) {
+			return
+		}
+	}
+}
+
 // Purge purges Dam.
 func (d *Dam) Purge() {
 	d.mutex.Lock()

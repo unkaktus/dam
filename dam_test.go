@@ -105,6 +105,32 @@ func TestLoad(t *testing.T) {
 	is.True(ok)
 	is.Equal(val, "value")
 }
+
+func TestRangeSimple(t *testing.T) {
+	is := is.New(t)
+	d := New(NoPurge)
+	key1 := &TestStruct{Value: "key"}
+	err := d.Store(key1, "value1")
+	is.NoErr(err)
+	key2 := &TestStruct{Value: "key2"}
+	err = d.Store(key2, "value2")
+	is.NoErr(err)
+	rr := []string{"value1", "value2"}
+	r := map[string]bool{}
+	d.Range(func(v interface{}) bool {
+		is.True(v != nil)
+		val, ok := v.(string)
+		is.True(ok)
+		r[val] = true
+		return true
+	})
+	for _, v := range rr {
+		ok, ok2 := r[v]
+		is.True(ok)
+		is.True(ok2)
+	}
+}
+
 func TestLoadOrStore(t *testing.T) {
 	is := is.New(t)
 	fetch := func() (interface{}, error) {
