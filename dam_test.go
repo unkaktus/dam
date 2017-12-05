@@ -72,13 +72,13 @@ func TestStoreNoPurge(t *testing.T) {
 
 func TestStore(t *testing.T) {
 	is := is.New(t)
-	d := New(10 * time.Millisecond)
+	d := New(100 * time.Millisecond)
 	defer d.Stop()
 	key := &TestStruct{Value: "key"}
 	err := d.Store(key, "value")
 	is.NoErr(err)
 	is.Equal(len(d.storage), 1)
-	time.Sleep(11 * time.Millisecond)
+	time.Sleep(110 * time.Millisecond)
 	is.Equal(len(d.storage), 0)
 }
 
@@ -110,7 +110,7 @@ func TestLoadOrStore(t *testing.T) {
 	fetch := func() (interface{}, error) {
 		return "value2", nil
 	}
-	d := New(10 * time.Millisecond)
+	d := New(100 * time.Millisecond)
 	key := &TestStruct{Value: "key"}
 	err := d.Store(key, "value")
 	is.NoErr(err)
@@ -121,7 +121,7 @@ func TestLoadOrStore(t *testing.T) {
 	is.True(ok)
 	is.Equal(val, "value")
 
-	time.Sleep(12 * time.Millisecond)
+	time.Sleep(130 * time.Millisecond)
 	v, err = d.LoadOrStore(key, fetch)
 	is.NoErr(err)
 	is.True(v != nil)
