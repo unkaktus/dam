@@ -1,4 +1,4 @@
-// dam.go - simple periodically flushable cache
+// dam.go - simple periodically purgeable cache
 //
 // To the extent possible under law, Ivan Markin waived all copyright
 // and related or neighboring rights to this module of dam, using the creative
@@ -23,10 +23,13 @@ const (
 	NoPurge = time.Duration(0)
 )
 
+// Marshallable represents a struct (typicaly a profobuf struct)
+// that can be serialized into byte slice.
 type Marshallable interface {
 	Marshal() ([]byte, error)
 }
 
+// Dam represents instance of purgeable cache.
 type Dam struct {
 	mutex   sync.RWMutex
 	storage map[string]interface{}
@@ -35,6 +38,9 @@ type Dam struct {
 	tickerDone chan struct{}
 }
 
+// New creates a Dam that purges every duration.
+// If set to NoPurge or value less than zero
+// the Dam will never purge.
 func New(duration time.Duration) *Dam {
 	d := &Dam{
 		storage:    make(map[string]interface{}),
@@ -70,6 +76,7 @@ func hash(s Marshallable) (string, error) {
 	return ret, nil
 }
 
+// Store sets the value for a key.
 func (d *Dam) Store(key Marshallable, value interface{}) error {
 	k, err := hash(key)
 	if err != nil {
@@ -81,6 +88,8 @@ func (d *Dam) Store(key Marshallable, value interface{}) error {
 	return nil
 }
 
+// Load returns existing value stored for the key.
+// If no value is present it returns ErrNotFound as the error.
 func (d *Dam) Load(key Marshallable) (interface{}, error) {
 	k, err := hash(key)
 	if err != nil {
@@ -95,8 +104,15 @@ func (d *Dam) Load(key Marshallable) (interface{}, error) {
 	return value, nil
 }
 
+// FetchFunc represents a function that fetches value to be
+// stored in Dam.
 type FetchFunc func() (interface{}, error)
 
+// LoadOrStore returns existing value for the key if present.
+// If the is no value it will call fetch function and set given value
+// for the key.
+// Note: fetch function is supposed to be called as a closure and
+// fetch value for the key.
 func (d *Dam) LoadOrStore(key Marshallable, fetch FetchFunc) (interface{}, error) {
 	v, err := d.Load(key)
 	if err == ErrNotFound {
@@ -109,12 +125,15 @@ func (d *Dam) LoadOrStore(key Marshallable, fetch FetchFunc) (interface{}, error
 	return v, err
 }
 
+// Purge purges Dam.
 func (d *Dam) Purge() {
 	d.mutex.Lock()
 	d.storage = make(map[string]interface{})
 	d.mutex.Unlock()
 }
 
+// Stop stops purging of the Dam and allows underlying
+// resources to be freed.
 func (d *Dam) Stop() {
 	if d.ticker == nil {
 		return
