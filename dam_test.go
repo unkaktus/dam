@@ -30,7 +30,7 @@ func (ts *TestStruct) Marshal() ([]byte, error) {
 
 func TestNewNoPurge(t *testing.T) {
 	is := is.New(t)
-	d := New(-1 * time.Second)
+	d := New(NoPurge)
 	is.True(d.storage != nil)
 	is.True(d.ticker == nil)
 }
@@ -55,7 +55,7 @@ func TestStop(t *testing.T) {
 
 func TestStoreMarshalErr(t *testing.T) {
 	is := is.New(t)
-	d := New(-1 * time.Second)
+	d := New(NoPurge)
 	key := &TestStruct{}
 	err := d.Store(key, "testing")
 	is.True(err == MockErr)
@@ -63,7 +63,7 @@ func TestStoreMarshalErr(t *testing.T) {
 
 func TestStoreNoPurge(t *testing.T) {
 	is := is.New(t)
-	d := New(-1 * time.Second)
+	d := New(NoPurge)
 	key := &TestStruct{Value: "key"}
 	err := d.Store(key, "value")
 	is.NoErr(err)

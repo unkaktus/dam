@@ -19,6 +19,10 @@ var (
 	ErrNotFound = errors.New("not found")
 )
 
+const (
+	NoPurge = time.Duration(0)
+)
+
 type Marshallable interface {
 	Marshal() ([]byte, error)
 }
