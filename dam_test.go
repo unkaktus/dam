@@ -106,6 +106,19 @@ func TestLoad(t *testing.T) {
 	is.Equal(val, "value")
 }
 
+func TestDelete(t *testing.T) {
+	is := is.New(t)
+	d := New(NoPurge)
+	key := &TestStruct{Value: "key"}
+	err := d.Store(key, "value")
+	is.NoErr(err)
+	err = d.Delete(key)
+	is.NoErr(err)
+	v, err := d.Load(key)
+	is.Equal(err, ErrNotFound)
+	is.Equal(v, nil)
+}
+
 func TestRangeSimple(t *testing.T) {
 	is := is.New(t)
 	d := New(NoPurge)

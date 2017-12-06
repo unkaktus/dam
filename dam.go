@@ -148,6 +148,18 @@ func (d *Dam) Range(f func(value interface{}) bool) {
 	}
 }
 
+// Delete deletes entry in Dam for the key.
+func (d *Dam) Delete(key Marshallable) error {
+	k, err := hash(key)
+	if err != nil {
+		return err
+	}
+	d.mutex.Lock()
+	delete(d.storage, k)
+	d.mutex.Unlock()
+	return nil
+}
+
 // Purge purges Dam.
 func (d *Dam) Purge() {
 	d.mutex.Lock()
