@@ -78,7 +78,7 @@ func hash(s Marshallable) (string, error) {
 		panic(err)
 	}
 	h.Write(m)
-	ret := string(m[:8])
+	ret := string(h.Sum(nil)[:8])
 	return ret, nil
 }
 
