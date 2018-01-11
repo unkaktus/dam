@@ -23,6 +23,12 @@ const (
 	NoPurge = time.Duration(0)
 )
 
+// element is unlockable structure
+type element struct {
+	value interface{}
+	ready chan struct{}
+}
+
 // Marshallable represents a struct (typicaly a profobuf struct)
 // that can be serialized into byte slice.
 type Marshallable interface {
@@ -32,7 +38,7 @@ type Marshallable interface {
 // Dam represents instance of purgeable cache.
 type Dam struct {
 	mutex   sync.RWMutex
-	storage map[string]interface{}
+	storage map[string]*element
 
 	ticker     *time.Ticker
 	tickerDone chan struct{}
@@ -43,7 +49,7 @@ type Dam struct {
 // the Dam will never purge.
 func New(duration time.Duration) *Dam {
 	d := &Dam{
-		storage:    make(map[string]interface{}),
+		storage:    make(map[string]*element),
 		tickerDone: make(chan struct{}),
 	}
 	if duration > time.Duration(0) {
@@ -82,8 +88,13 @@ func (d *Dam) Store(key Marshallable, value interface{}) error {
 	if err != nil {
 		return err
 	}
+	e := &element{
+		value: value,
+		ready: make(chan struct{}),
+	}
+	close(e.ready)
 	d.mutex.Lock()
-	d.storage[k] = value
+	d.storage[k] = e
 	d.mutex.Unlock()
 	return nil
 }
@@ -96,12 +107,13 @@ func (d *Dam) Load(key Marshallable) (interface{}, error) {
 		return nil, err
 	}
 	d.mutex.RLock()
-	value, ok := d.storage[k]
+	e, ok := d.storage[k]
 	d.mutex.RUnlock()
 	if !ok {
 		return nil, ErrNotFound
 	}
-	return value, nil
+	<-e.ready
+	return e.value, nil
 }
 
 // FetchFunc represents a function that fetches value to be
@@ -114,15 +126,29 @@ type FetchFunc func() (interface{}, error)
 // Note: fetch function is supposed to be called as a closure and
 // fetch value for the key.
 func (d *Dam) LoadOrStore(key Marshallable, fetch FetchFunc) (interface{}, error) {
-	v, err := d.Load(key)
-	if err == ErrNotFound {
-		v, err = fetch()
+	k, err := hash(key)
+	if err != nil {
+		return nil, err
+	}
+	d.mutex.Lock()
+	e, ok := d.storage[k]
+	if !ok {
+		e = &element{
+			ready: make(chan struct{}),
+		}
+		d.storage[k] = e
+	}
+	d.mutex.Unlock()
+	if !ok {
+		v, err := fetch()
 		if err != nil {
 			return nil, err
 		}
-		err = d.Store(key, v)
+		e.value = v
+		close(e.ready)
 	}
-	return v, err
+	<-e.ready
+	return e.value, nil
 }
 
 // Range ranges over existing entries in a Dam. Range does not
@@ -137,12 +163,13 @@ func (d *Dam) Range(f func(value interface{}) bool) {
 
 	for _, k := range keys {
 		d.mutex.RLock()
-		value, ok := d.storage[k]
+		e, ok := d.storage[k]
 		d.mutex.RUnlock()
 		if !ok {
 			continue
 		}
-		if !f(value) {
+		<-e.ready // XXX: this may block whole Range
+		if !f(e.value) {
 			return
 		}
 	}
@@ -163,7 +190,7 @@ func (d *Dam) Delete(key Marshallable) error {
 // Purge purges Dam.
 func (d *Dam) Purge() {
 	d.mutex.Lock()
-	d.storage = make(map[string]interface{})
+	d.storage = make(map[string]*element)
 	d.mutex.Unlock()
 }
 
