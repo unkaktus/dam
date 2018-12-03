@@ -200,3 +200,25 @@ func TestKey(t *testing.T) {
 	mx2 := Key(mx)
 	is.Equal(mx2, mx)
 }
+
+func TestLockUnlock(t *testing.T) {
+	is := is.New(t)
+	d := New(NoPurge)
+	err := d.Store(Key("test1"), "test1")
+	is.NoErr(err)
+	err = d.Store(Key("test2"), "test2")
+	is.NoErr(err)
+	n := 0
+	d.Lock()
+	go func() {
+		err := d.Store(Key("test3"), "test3")
+		is.NoErr(err)
+	}()
+	time.Sleep(10 * time.Millisecond)
+	d.Range(func(v interface{}) bool {
+		n++
+		return true
+	})
+	d.Unlock()
+	is.Equal(n, 2)
+}

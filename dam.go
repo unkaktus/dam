@@ -59,6 +59,7 @@ func Key(v interface{}) Marshallable {
 // Dam represents instance of purgeable cache.
 type Dam struct {
 	mutex   sync.RWMutex
+	freeze  sync.Mutex
 	storage map[string]*element
 
 	ticker     *time.Ticker
@@ -114,9 +115,11 @@ func (d *Dam) Store(key Marshallable, value interface{}) error {
 		ready: make(chan struct{}),
 	}
 	close(e.ready)
+	d.freeze.Lock()
 	d.mutex.Lock()
 	d.storage[k] = e
 	d.mutex.Unlock()
+	d.freeze.Unlock()
 	return nil
 }
 
@@ -151,6 +154,7 @@ func (d *Dam) LoadOrStore(key Marshallable, fetch FetchFunc) (interface{}, error
 	if err != nil {
 		return nil, err
 	}
+	d.freeze.Lock()
 	d.mutex.Lock()
 	e, ok := d.storage[k]
 	if !ok {
@@ -160,6 +164,7 @@ func (d *Dam) LoadOrStore(key Marshallable, fetch FetchFunc) (interface{}, error
 		d.storage[k] = e
 	}
 	d.mutex.Unlock()
+	d.freeze.Unlock()
 	if !ok {
 		v, err := fetch()
 		if err != nil {
@@ -231,4 +236,14 @@ func (d *Dam) Size() int {
 	l := len(d.storage)
 	d.mutex.RUnlock()
 	return l
+}
+
+// Lock locks Dam d for writing.
+func (d *Dam) Lock() {
+	d.freeze.Lock()
+}
+
+// Unlock unlocks Dam d for writing.
+func (d *Dam) Unlock() {
+	d.freeze.Unlock()
 }
