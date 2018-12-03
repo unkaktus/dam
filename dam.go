@@ -8,6 +8,8 @@
 package dam
 
 import (
+	"bytes"
+	"encoding/gob"
 	"errors"
 	"sync"
 	"time"
@@ -33,6 +35,25 @@ type element struct {
 // that can be serialized into byte slice.
 type Marshallable interface {
 	Marshal() ([]byte, error)
+}
+
+type auto struct {
+	v interface{}
+}
+
+func (a auto) Marshal() ([]byte, error) {
+	var b bytes.Buffer
+	err := gob.NewEncoder(&b).Encode(a.v)
+	return b.Bytes(), err
+}
+
+// Key converets v into a Marshallable with all exported fields.
+// If v is already Marshallable, Key will return it.
+func Key(v interface{}) Marshallable {
+	if vv, ok := v.(Marshallable); ok {
+		return vv
+	}
+	return auto{v: v}
 }
 
 // Dam represents instance of purgeable cache.

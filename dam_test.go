@@ -168,3 +168,23 @@ func TestLoadOrStore(t *testing.T) {
 	is.True(ok)
 	is.Equal(val, "value2")
 }
+
+func TestKey(t *testing.T) {
+	is := is.New(t)
+	x := struct {
+		A int
+		B string
+		C []byte
+	}{
+		1,
+		"b",
+		[]byte("c"),
+	}
+	mx := Key(x)
+	bx, err := hash(mx)
+	is.NoErr(err)
+	is.Equal(bx, "\x13\x83\x87\xb5\xe1\x7a\xf3\xe3")
+
+	mx2 := Key(mx)
+	is.Equal(mx2, mx)
+}
