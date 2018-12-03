@@ -224,3 +224,11 @@ func (d *Dam) Stop() {
 	d.ticker.Stop()
 	close(d.tickerDone)
 }
+
+// Size returns current number of elements stored in Dam.
+func (d *Dam) Size() int {
+	d.mutex.RLock()
+	l := len(d.storage)
+	d.mutex.RUnlock()
+	return l
+}

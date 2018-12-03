@@ -169,6 +169,18 @@ func TestLoadOrStore(t *testing.T) {
 	is.Equal(val, "value2")
 }
 
+func TestSize(t *testing.T) {
+	is := is.New(t)
+	d := New(NoPurge)
+	for i := 0; i < 128; i++ {
+		err := d.Store(Key(i), i)
+		is.NoErr(err)
+	}
+	is.Equal(d.Size(), 128)
+	d.Purge()
+	is.Equal(d.Size(), 0)
+}
+
 func TestKey(t *testing.T) {
 	is := is.New(t)
 	x := struct {
