@@ -222,3 +222,26 @@ func TestLockUnlock(t *testing.T) {
 	d.Unlock()
 	is.Equal(n, 2)
 }
+
+func TestLockUnlockDeletePurge(t *testing.T) {
+	is := is.New(t)
+	d := New(NoPurge)
+	err := d.Store(Key("test1"), "test1")
+	is.NoErr(err)
+	err = d.Store(Key("test2"), "test2")
+	is.NoErr(err)
+	n := 0
+	d.Lock()
+	go d.Purge()
+	go func() {
+		err := d.Delete(Key("test2"))
+		is.NoErr(err)
+	}()
+	time.Sleep(10 * time.Millisecond)
+	d.Range(func(v interface{}) bool {
+		n++
+		return true
+	})
+	d.Unlock()
+	is.Equal(n, 2)
+}

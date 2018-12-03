@@ -207,17 +207,21 @@ func (d *Dam) Delete(key Marshallable) error {
 	if err != nil {
 		return err
 	}
+	d.freeze.Lock()
 	d.mutex.Lock()
 	delete(d.storage, k)
 	d.mutex.Unlock()
+	d.freeze.Unlock()
 	return nil
 }
 
 // Purge purges Dam.
 func (d *Dam) Purge() {
+	d.freeze.Lock()
 	d.mutex.Lock()
 	d.storage = make(map[string]*element)
 	d.mutex.Unlock()
+	d.freeze.Unlock()
 }
 
 // Stop stops purging of the Dam and allows underlying
