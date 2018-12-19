@@ -47,7 +47,7 @@ func (a auto) Marshal() ([]byte, error) {
 	return b.Bytes(), err
 }
 
-// Key converets v into a Marshallable with all exported fields.
+// Key converets v into a Marshallable using all fields.
 // If v is already Marshallable, Key will return it.
 func Key(v interface{}) Marshallable {
 	if vv, ok := v.(Marshallable); ok {
