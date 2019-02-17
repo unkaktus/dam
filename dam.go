@@ -194,9 +194,12 @@ func (d *Dam) Range(f func(value interface{}) bool) {
 		if !ok {
 			continue
 		}
-		<-e.ready // XXX: this may block whole Range
-		if !f(e.value) {
-			return
+		select {
+		case <-e.ready:
+			if !f(e.value) {
+				return
+			}
+		default:
 		}
 	}
 }

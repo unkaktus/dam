@@ -144,6 +144,27 @@ func TestRangeSimple(t *testing.T) {
 	}
 }
 
+func TestRangeStaleFetch(t *testing.T) {
+	is := is.New(t)
+	d := New(NoPurge)
+	fetch := func() (interface{}, error) {
+		<-make(chan struct{})
+		return "never", nil
+	}
+	err := d.Store(Key("now"), "test")
+	is.NoErr(err)
+	go func() {
+		d.LoadOrStore(Key("never"), fetch)
+	}()
+	time.Sleep(100 * time.Millisecond)
+	r := []interface{}{}
+	d.Range(func(v interface{}) bool {
+		r = append(r, v)
+		return true
+	})
+	is.Equal(r, []interface{}{"test"})
+}
+
 func TestLoadOrStore(t *testing.T) {
 	is := is.New(t)
 	fetch := func() (interface{}, error) {
