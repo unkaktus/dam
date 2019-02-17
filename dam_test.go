@@ -78,7 +78,7 @@ func TestStore(t *testing.T) {
 	err := d.Store(key, "value")
 	is.NoErr(err)
 	is.Equal(len(d.storage), 1)
-	time.Sleep(110 * time.Millisecond)
+	time.Sleep(150 * time.Millisecond)
 	is.Equal(len(d.storage), 0)
 }
 
